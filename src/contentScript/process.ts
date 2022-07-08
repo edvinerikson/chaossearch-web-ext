@@ -87,6 +87,7 @@ export function processElement( element: Element ) : void
       container.normalize();
 
       container.classList.add( styles.container );
+      container.classList.remove('truncate-by-height');
 
       element.replaceWith( container );
     }
