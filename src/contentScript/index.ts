@@ -1,7 +1,6 @@
 import {
   Emoji, kibanaPlus, kibanaPlusPrettyJsonClassName, ReadyStates,
 } from '../constants';
-import { findElements } from './elements';
 import { processElement } from './process';
 
 // The background script checks for this value so it does not insert multiple of this script.
@@ -61,39 +60,31 @@ function waitForContentLoaded(callback: () => void, checkDelay = 10) : void
 
 function looksLikeKibana() : boolean
 {
-  return document.querySelector('body')?.getAttribute('id') === 'kibana-body';
+  return document.querySelector('#kibana-body') !== null;
 }
 
 function init() : void
 {
   if ( ! looksLikeKibana() ) {
     info('This doesn\'t look like a Kibana page');
+    setTimeout(init, 3000);
 
     return;
   }
 
-  info(`initializing ${Emoji.HourGlassNotDone}`);
+  info(`initializing asd ${Emoji.HourGlassNotDone}`);
 
   const subjectsSelector: string = [
-    'event',
-    '@message',
-    '@event.data.payload.attributes',
-    '@event.eventData',
-    '@event.eventParams',
-    '@event.requestData',
-    '@event.graphQlResponse',
-    '@event.restResponse',
-    '@event.msg',
-    '@event.customContext.errorContext',
+    '_rawJson',
   ].map((subject: string): string => `tr[data-test-subj$="${subject}"]`).join(',');
-
+  
   const intersection = new IntersectionObserver(
     (entries: IntersectionObserverEntry[], observer: IntersectionObserver) : void => {
       entries
         .filter( entry => entry.isIntersecting )
         .forEach( entry => {
           observer.unobserve( entry.target );
-
+          console.log(entry.target);
           processElement( entry.target );
         });
     },
@@ -104,29 +95,22 @@ function init() : void
     },
   );
 
-  const mutation = new MutationObserver( (mutations: MutationRecord[]) => {
-    findElements( mutations, subjectsSelector ).forEach( (element: Element) : void => {
-      const span = element.querySelector('.doc-viewer-value > span');
-
-      if ( span ) {
-        intersection.observe( span );
-      }
-    });
+  const mutation = new MutationObserver( () => {
+    document.querySelectorAll(subjectsSelector + ' .kbnDocViewer__value').forEach(div => intersection.observe(div));
   });
 
   mutation.observe(document, {
     subtree: true,
     attributes: true,
-    attributeFilter: [ 'data-test-subj' ],
+    // attributeFilter: [ 'data-test-subj' ],
   });
-
   try {
     // Process any elements that are already showing.
-    document.querySelectorAll(`:is(${subjectsSelector}) .doc-viewer-value > span`).forEach( span => intersection.observe( span ) );
+    document.querySelectorAll(`:is(${subjectsSelector}) .kbnDocViewer__value`).forEach( span => intersection.observe( span ) );
   } catch (error) {
     // Chrome may throw an error when using ":is" since it is behind the
     // #enable-experimental-web-platform-features preference in chrome://flags.
-    document.querySelectorAll(`:-webkit-any(${subjectsSelector}) .doc-viewer-value > span`).forEach( span => intersection.observe( span ) );
+    document.querySelectorAll(`:-webkit-any(${subjectsSelector}) .kbnDocViewer__value`).forEach( span => intersection.observe( span ) );
   }
 
   info(`initialized ${Emoji.Horns}`);
